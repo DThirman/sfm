@@ -250,13 +250,14 @@ Returns:
     model - The projection matrix H found by RANSAC that has the most number of
         inliers.
 '''
-def ransac(keypoints1, keypoints2, matches, reprojection_threshold = 50,
-        num_iterations = 100):
+def ransac(keypoints1, keypoints2, matches, reprojection_threshold = 300,
+        num_iterations = 1000):
     # TODO: Implement this method!
 	#print 'keypoints:', keypoints1.shape, keypoints2.shape, matches.shape
 	max_inliers_count = 0
 	for i in range(num_iterations):
-		print ' iteration:', i
+		if i % 100 == 0:
+			print ' iteration:', i
 		indices = np.random.randint(0, len(matches), 4)
 		first = True
 		for i in indices:
@@ -344,8 +345,8 @@ def sift():
 	good_idx, _ = ransac(kp1, kp2, good)
 	print '# matches after ransac:', len(good_idx)
 	
-	#better = good[good_idx]
-	better = good
+	better = good[good_idx]
+	#better = good
 
 	#img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,good,flags=2)
 	img3 = drawMatches(gray1,kp1,gray2,kp2, good)
@@ -515,15 +516,17 @@ if __name__ == '__main__':
         'fundamental_matrices.npy'))[0,:]
 
     # Part A: Computing the 4 initial R,T transformations from Essential Matrix
-    print '-' * 80
+    '''print '-' * 80
     print "Part A: Check your matrices against the example R,T"
     print '-' * 80
     K = np.eye(3)
     K[0,0] = K[1,1] = focal_length
-    E = K.T.dot(fundamental_matrices[0]).dot(K)
+    E = K.T.dot(fundamental_matrices[0]).dot(K)'''
+
     im0 = scipy.misc.imread(image_paths[0])
     im_height, im_width, _ = im0.shape
-    example_RT = np.array([[0.9736, -0.0988, -0.2056, 0.9994],
+
+    '''example_RT = np.array([[0.9736, -0.0988, -0.2056, 0.9994],
         [0.1019, 0.9948, 0.0045, -0.0089],
         [0.2041, -0.0254, 0.9786, 0.0331]])
     print "Example RT:\n", example_RT
@@ -588,7 +591,7 @@ if __name__ == '__main__':
         np.expand_dims(unit_test_image_matches[:2,:], axis=0), K)
     print "Example RT:\n", example_RT
     print
-    print "Estimated RT:\n", estimated_RT
+    print "Estimated RT:\n", estimated_RT'''
 
     # Part F: Run the entire Structure from Motion pipeline
     if not run_pipeline:

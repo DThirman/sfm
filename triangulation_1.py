@@ -194,7 +194,7 @@ def display(points):
 	figure = Figure((24,24))
 
 	# Create a subplot on left, using trackball interface (3d)
-	size = 10
+	size = 20
 	left = figure.add_axes( [0.010, 0.01, 0.98, 0.98],
 				xscale = LinearScale(domain=[-size,size], range=[-size,size]),
 				yscale = LinearScale(domain=[-size,size], range=[-size,size]),
@@ -250,13 +250,15 @@ Returns:
     model - The projection matrix H found by RANSAC that has the most number of
         inliers.
 '''
-def ransac(keypoints1, keypoints2, matches, reprojection_threshold = 50,
-        num_iterations = 20):
+def ransac(keypoints1, keypoints2, matches, reprojection_threshold = 150,
+        num_iterations = 100):
     # TODO: Implement this method!
 	#print 'keypoints:', keypoints1.shape, keypoints2.shape, matches.shape
 	max_inliers_count = 0
 	for i in range(num_iterations):
-		print ' iteration:', i
+		if i % 100 == 0:
+			print ' iteration:', i
+		#print 'iteration:', i
 		indices = np.random.randint(0, len(matches), 4)
 		first = True
 		for i in indices:
@@ -309,8 +311,8 @@ def sift(image_data_dir, image_paths):
 
 	ret = []
 
-	#for i in range(len(image_paths) - 1):
-	for i in range(1):
+	for i in range(len(image_paths) - 1):
+	#for i in range(1):
 
 			img1 = cv2.imread(image_paths[i])
 			img2 = cv2.imread(image_paths[i + 1])
@@ -350,16 +352,20 @@ def sift(image_data_dir, image_paths):
 			good_idx, _ = ransac(kp1, kp2, good)
 			print '# matches after ransac:', len(good_idx)
 
+			better = good[good_idx]
 
 			#img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,good,flags=2)
-			img3 = drawMatches(gray1,kp1,gray2,kp2, good[good_idx])
+			img3 = drawMatches(gray1,kp1,gray2,kp2, good)
 			plt.imshow(img3)
 			plt.show()
+			img4 = drawMatches(gray1,kp1,gray2,kp2, better)
+			plt.imshow(img4)
+			plt.show()
 
-			reti = np.zeros((4, len(good)))
-			for i in range(len(good)):
-				x1, y1 = kp1[good[i].queryIdx].pt
-				x2, y2 = kp2[good[i].trainIdx].pt
+			reti = np.zeros((4, len(better)))
+			for i in range(len(better)):
+				x1, y1 = kp1[better[i].queryIdx].pt
+				x2, y2 = kp2[better[i].trainIdx].pt
 
 				#if i == 10: print 'x1, y1:', x1, y1
 				reti[:, i] = [x1, y1, x2, y2]
@@ -496,36 +502,49 @@ def drawMatches(img1, kp1, img2, kp2, matches):
 if __name__ == '__main__':
 	
     run_pipeline = True
-    image_data_dir = 'data/statue/'
+    image_data_dir = 'data/hoover/'
     image_paths = [os.path.join(image_data_dir, 'images', x) for x in
-        sorted(os.listdir('data/statue/images')) if '.jpg' in x]
-    dense_matches = sift(image_data_dir, image_paths)
+        sorted(os.listdir('data/hoover/images')) if '.jpg' in x]
+    m1 = np.load(os.path.join(image_data_dir, '1.npy'))[:4,:]
+    m2 = np.load(os.path.join(image_data_dir, '2.npy'))[:4,:]
+    m3 = np.load(os.path.join(image_data_dir, '3.npy'))[:4,:]
+    #m4 = np.load(os.path.join(image_data_dir, '4.npy'))[:4,:]
+    dense_matches = [m1, m2, m3]
+    print 'm1 to m4:', m1.shape, m2.shape, m3.shape
+    print 'dense matches', len(dense_matches)
+
+    #dense_matches = sift(image_data_dir, image_paths)
+
     #print 'dense matches', dense_matches, dense_matches.shape
-	
+    #matches_subset = dense_matches
 
     # Load the data
-
-    unit_test_camera_matrix = np.load('data/unit_test_camera_matrix.npy')
-    unit_test_image_matches = np.load('data/unit_test_image_matches.npy')
+    #unit_test_camera_matrix = np.load('data/unit_test_camera_matrix.npy')
+    #unit_test_image_matches = np.load('data/unit_test_image_matches.npy')
 
     focal_length = 719.5459
-    matches_subset = np.load(os.path.join(image_data_dir,
-        'matches_subset.npy'))[0,:]
+    #matches_subset = np.load(os.path.join(image_data_dir,
+    #    'matches_subset.npy'))[0,:]
+    matches_subset = [m1[:,:100], m2[:,:100], m3[:,:100]]
+    print 'matches subset', len(matches_subset), matches_subset[0].shape
+
     #dense_matches = np.load(os.path.join(image_data_dir, 'dense_matches.npy'))
     #print 'dense matches:', dense_matches[0], dense_matches.shape, dense_matches[0].shape
     fundamental_matrices = np.load(os.path.join(image_data_dir,
         'fundamental_matrices.npy'))[0,:]
 
     # Part A: Computing the 4 initial R,T transformations from Essential Matrix
-    print '-' * 80
+    '''print '-' * 80
     print "Part A: Check your matrices against the example R,T"
     print '-' * 80
     K = np.eye(3)
     K[0,0] = K[1,1] = focal_length
-    E = K.T.dot(fundamental_matrices[0]).dot(K)
+    E = K.T.dot(fundamental_matrices[0]).dot(K)'''
+
     im0 = scipy.misc.imread(image_paths[0])
     im_height, im_width, _ = im0.shape
-    example_RT = np.array([[0.9736, -0.0988, -0.2056, 0.9994],
+
+    '''example_RT = np.array([[0.9736, -0.0988, -0.2056, 0.9994],
         [0.1019, 0.9948, 0.0045, -0.0089],
         [0.2041, -0.0254, 0.9786, 0.0331]])
     print "Example RT:\n", example_RT
@@ -590,7 +609,7 @@ if __name__ == '__main__':
         np.expand_dims(unit_test_image_matches[:2,:], axis=0), K)
     print "Example RT:\n", example_RT
     print
-    print "Estimated RT:\n", estimated_RT
+    print "Estimated RT:\n", estimated_RT'''
 
     # Part F: Run the entire Structure from Motion pipeline
     if not run_pipeline:
@@ -608,8 +627,8 @@ if __name__ == '__main__':
     # Construct the dense matching
     camera_matrices = np.zeros((2,3,4))
     dense_structure = np.zeros((0,3))
-    #for i in xrange(len(frames)-1):
-    for i in range(1):
+    for i in xrange(len(frames)-1):
+    #for i in range(1):
         matches = dense_matches[i]
         camera_matrices[0,:,:] = merged_frame.K.dot(
             merged_frame.motion[i,:,:])
